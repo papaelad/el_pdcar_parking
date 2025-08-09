@@ -1,19 +1,17 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 local vehiclesFile = "pdcar_vehicles.json"
 local fineLogFile = "fine_logs.json"
+local vehicleLogFile = "pdcar_vehicle_log.json"
 local vehicleLog = {}
 
-Config = {}
-Config.AllowedRanks = {
-    ["chief"] = true,
-    ["captain"] = true,
-    ["lieutenant"] = true
-}
-Config.AllowedRanksToSave = {
-    ["chief"] = true,
-    ["captain"] = true
-}
+function LoadVehicleLog()
+    local data = LoadResourceFile(GetCurrentResourceName(), vehicleLogFile)
+    return data and json.decode(data) or {}
+end
 
+function SaveVehicleLog()
+    SaveResourceFile(GetCurrentResourceName(), vehicleLogFile, json.encode(vehicleLog, { indent = true }), -1)
+end
 
 function LoadVehicles()
     local data = LoadResourceFile(GetCurrentResourceName(), vehiclesFile)
@@ -45,6 +43,7 @@ end
 -- טעינה אוטומטית לכל השוטרים
 AddEventHandler('onResourceStart', function(resource)
     if resource == GetCurrentResourceName() then
+        vehicleLog = LoadVehicleLog()
         local vehicles = LoadVehicles()
         for _, player in pairs(QBCore.Functions.GetPlayers()) do
             local Player = QBCore.Functions.GetPlayer(player)
@@ -52,7 +51,7 @@ AddEventHandler('onResourceStart', function(resource)
                 TriggerClientEvent("pdcar:client:LoadVehicles", player, vehicles)
             end
         end
-        print("[pdcar] רכבים נטענו בהצלחה.")
+        print("[pdcar] רכבים ויומן רכבים נטענו בהצלחה.")
     end
 end)
 
@@ -127,6 +126,7 @@ AddEventHandler("pdcar:server:LogVehicleTaken", function(model, plate)
         takenAt = os.time(),
         returned = false
     }
+    SaveVehicleLog()
 end)
 
 -- לוג החזרת רכב
@@ -140,6 +140,7 @@ AddEventHandler("pdcar:server:LogVehicleReturned", function(plate)
     if vehicleLog[cid] and vehicleLog[cid].plate == plate then
         vehicleLog[cid].returned = true
         vehicleLog[cid].returnedAt = os.time()
+        SaveVehicleLog()
     end
 end)
 

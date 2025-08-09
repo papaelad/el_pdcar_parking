@@ -342,6 +342,11 @@ end, false)
 -- תפריט ניהולי להצגת רכבים שנלקחו
 RegisterNetEvent("pdcar:client:OpenVehicleLogMenu", function(log)
     local menu = {}
+    table.insert(menu, {
+        header = "📋 לוג רכבים שנלקחו",
+        isMenuHeader = true
+    })
+
     for _, data in pairs(log) do
         local status = data.returned and "✅ הוחזר" or "🚓 בשימוש"
         local timeTaken = os.date("%d/%m/%Y %H:%M:%S", data.takenAt or 0)
@@ -355,7 +360,7 @@ RegisterNetEvent("pdcar:client:OpenVehicleLogMenu", function(log)
         })
     end
 
-    if #menu == 0 then
+    if #menu == 1 then
         table.insert(menu, {
             header = "אין רכבים פעילים",
             txt = "לא נלקחו רכבים כרגע",
@@ -367,56 +372,10 @@ RegisterNetEvent("pdcar:client:OpenVehicleLogMenu", function(log)
     exports['qb-menu']:openMenu(menu)
 end)
 
-local QBCore = exports['qb-core']:GetCoreObject()
-local vehicles = {}
-
--- 📦 קבלת רכבים מהשרת
-RegisterNetEvent("pdcar:client:LoadVehicles", function(data)
-    vehicles = data
-    print("[pdcar] רכבים נטענו מהשרת.")
-end)
-
--- 📋 תפריט ניהולי להצגת רכבים שנלקחו
-RegisterNetEvent("pdcar:client:OpenVehicleLogMenu", function(logList)
-    local menu = {
-        {
-            header = "📋 לוג רכבים שנלקחו",
-            isMenuHeader = true
-        }
-    }
-
-    for _, entry in ipairs(logList) do
-        local status = entry.returned and "✅ הוחזר" or "🚓 בשימוש"
-        local timeTaken = os.date("%d/%m/%Y %H:%M", entry.takenAt)
-        local line = string.format("%s (%s) - %s", entry.name, entry.plate, status)
-
-        table.insert(menu, {
-            header = line,
-            txt = "נלקח בתאריך: " .. timeTaken,
-            disabled = true
-        })
-    end
-
-    if #menu == 1 then
-        table.insert(menu, {
-            header = "אין נתונים להצגה",
-            disabled = true
-        })
-    end
-
-    exports['qb-menu']:openMenu(menu)
-end)
-
--- 💸 טיפול בקנס ששולם
-RegisterNetEvent("pdcar:client:FinePaid", function()
-    -- אפשר להוסיף אפקטים, סאונד, או אנימציה כאן
-    print("[pdcar] קנס שולם בהצלחה.")
-end)
-
 -- 🧪 פקודת בדיקה לטעינת רכבים (למפתחים)
 RegisterCommand("pdcar_test", function()
     print("רכבים טעונים:")
-    for division, list in pairs(vehicles) do
+    for division, list in pairs(currentVehicles) do
         print("יחידה:", division)
         for i, v in ipairs(list) do
             print("  #" .. i, v.model, "ב־", v.spawn.x, v.spawn.y, v.spawn.z)
@@ -427,7 +386,7 @@ end, false)
 RegisterCommand("pdcar_ui", function()
     SendNUIMessage({
         action = "openVehicleManager",
-        vehicles = vehicles
+        vehicles = currentVehicles
     })
     SetNuiFocus(true, true)
 end, false)

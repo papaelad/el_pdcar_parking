@@ -13,3 +13,8 @@ Config.AllowedRanks = {
     ["lieutenant"] = true,
     ["captain"] = true
 }
+
+Config.AllowedRanksToSave = {
+    ["chief"] = true,
+    ["captain"] = true
+}
