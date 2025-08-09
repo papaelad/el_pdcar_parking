@@ -3,6 +3,7 @@ local vehiclesFile = "pdcar_vehicles.json"
 local fineLogFile = "fine_logs.json"
 local vehicleLogFile = "pdcar_vehicle_log.json"
 local vehicleLog = {}
+local vehiclesCache = {}
 
 function LoadVehicleLog()
     local data = LoadResourceFile(GetCurrentResourceName(), vehicleLogFile)
@@ -33,9 +34,12 @@ function SaveFineLog(entry)
     SaveResourceFile(GetCurrentResourceName(), fineLogFile, json.encode(logs, { indent = true }), -1)
 end
 
-function SyncVehiclesToAll(vehicles)
+function SyncVehiclesToAll()
     for _, player in pairs(QBCore.Functions.GetPlayers()) do
-        TriggerClientEvent("pdcar:client:LoadVehicles", player, vehicles)
+        local Player = QBCore.Functions.GetPlayer(player)
+        if Player and Player.PlayerData.job.name == "police" then
+            TriggerClientEvent("pdcar:client:LoadVehicles", player, vehiclesCache)
+        end
     end
 end
 
@@ -44,14 +48,27 @@ end
 AddEventHandler('onResourceStart', function(resource)
     if resource == GetCurrentResourceName() then
         vehicleLog = LoadVehicleLog()
-        local vehicles = LoadVehicles()
+        vehiclesCache = LoadVehicles()
         for _, player in pairs(QBCore.Functions.GetPlayers()) do
             local Player = QBCore.Functions.GetPlayer(player)
             if Player and Player.PlayerData.job.name == "police" then
-                TriggerClientEvent("pdcar:client:LoadVehicles", player, vehicles)
+                TriggerClientEvent("pdcar:client:LoadVehicles", player, vehiclesCache)
             end
         end
         print("[pdcar] רכבים ויומן רכבים נטענו בהצלחה.")
+    end
+end)
+
+AddEventHandler('QBCore:Server:OnPlayerLoaded', function()
+    local Player = QBCore.Functions.GetPlayer(source)
+    if Player and Player.PlayerData.job.name == "police" then
+        TriggerClientEvent("pdcar:client:LoadVehicles", source, vehiclesCache)
+    end
+end)
+
+AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
+    if job.name == "police" then
+        TriggerClientEvent("pdcar:client:LoadVehicles", source, vehiclesCache)
     end
 end)
 
@@ -75,13 +92,12 @@ AddEventHandler("pdcar:server:SaveVehicle", function(division, model, coords, he
         savedAt = os.time()
     }
 
-    local vehicles = LoadVehicles()
-    vehicles[division] = vehicles[division] or {}
-    table.insert(vehicles[division], vehicleData)
+    vehiclesCache[division] = vehiclesCache[division] or {}
+    table.insert(vehiclesCache[division], vehicleData)
 
-    SaveVehicles(vehicles)
+    SaveVehicles(vehiclesCache)
     TriggerClientEvent("QBCore:Notify", src, "✅ הרכב נשמר ליחידה: " .. division, "success")
-    SyncVehiclesToAll(vehicles)
+    SyncVehiclesToAll()
     print("[pdcar] רכב נשמר ליחידה " .. division .. " על ידי " .. Player.PlayerData.charinfo.firstname)
 end)
 
@@ -98,12 +114,11 @@ AddEventHandler("pdcar:server:DeleteVehicle", function(division, index)
         return
     end
 
-    local vehicles = LoadVehicles()
-    if vehicles[division] and vehicles[division][index] then
-        table.remove(vehicles[division], index)
-        SaveVehicles(vehicles)
+    if vehiclesCache[division] and vehiclesCache[division][index] then
+        table.remove(vehiclesCache[division], index)
+        SaveVehicles(vehiclesCache)
         TriggerClientEvent("QBCore:Notify", src, "✅ הרכב נמחק מהיחידה: " .. division, "success")
-        SyncVehiclesToAll(vehicles)
+        SyncVehiclesToAll()
         print("[pdcar] רכב נמחק מהיחידה " .. division)
     else
         TriggerClientEvent("QBCore:Notify", src, "❌ לא נמצא רכב למחיקה.", "error")
@@ -229,11 +244,9 @@ QBCore.Commands.Add("pdclean", "ניקוי רכבים שלא נגעו בהם X �
 
     local daysThreshold = tonumber(args[1]) or 7
     local cutoff = os.time() - (daysThreshold * 86400)
-
-    local vehicles = LoadVehicles()
     local cleaned = 0
 
-    for division, list in pairs(vehicles) do
+    for division, list in pairs(vehiclesCache) do
         local newList = {}
         for _, vehicle in ipairs(list) do
             if vehicle.savedAt and vehicle.savedAt >= cutoff then
@@ -242,11 +255,11 @@ QBCore.Commands.Add("pdclean", "ניקוי רכבים שלא נגעו בהם X �
                 cleaned = cleaned + 1
             end
         end
-        vehicles[division] = newList
+        vehiclesCache[division] = newList
     end
 
-    SaveVehicles(vehicles)
-    SyncVehiclesToAll(vehicles)
+    SaveVehicles(vehiclesCache)
+    SyncVehiclesToAll()
 
     TriggerClientEvent("QBCore:Notify", source,
         "🧹 נמחקו " .. cleaned .. " רכבים ישנים (יותר מ־" .. daysThreshold .. " ימים).", "success")

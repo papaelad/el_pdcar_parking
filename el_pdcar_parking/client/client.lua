@@ -423,18 +423,3 @@ RegisterCommand("pdcar_test", function()
         end
     end
 end, false)
-
-RegisterCommand("pdcar_ui", function()
-    SendNUIMessage({
-        action = "openVehicleManager",
-        vehicles = currentVehicles
-    })
-    SetNuiFocus(true, true)
-end, false)
-
-RegisterNUICallback("closeUI", function(_, cb)
-    SetNuiFocus(false, false)
-    cb("ok")
-end)
-
-RegisterKeyMapping("pdcar_ui", "פתח תפריט ניהול רכבים", "keyboard", "F10")
