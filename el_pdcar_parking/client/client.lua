@@ -8,6 +8,16 @@ local finePed = nil
 
 -- יצירת אזור חנייה עם PolyZone
 CreateThread(function()
+    while exports['PolyZone'] == nil do
+        Wait(500)
+    end
+
+    local BoxZone = exports['PolyZone'].BoxZone
+    if not BoxZone then
+        print("BoxZone is not available from PolyZone exports.")
+        return
+    end
+
     garageZone = BoxZone:Create(vector3(385.97, -1627.57, 29.37), 10.0, 10.0, {
         name = "pd_garage",
         heading = 0,
@@ -175,18 +185,48 @@ CreateThread(function()
     end
 end)
 
--- ממשק ניהולי NUI
-RegisterCommand("openpdcarui", function()
-    SetNuiFocus(true, true)
-    SendNUIMessage({ action = "open", data = currentVehicles })
+-- NUI Handling
+local isNuiOpen = false
+
+function SetNuiOpen(isOpen)
+    isNuiOpen = isOpen
+    SetNuiFocus(isOpen, isOpen)
+    SendNUIMessage({
+        action = isOpen and "openVehicleManager" or "close",
+        vehicles = currentVehicles
+    })
+end
+
+RegisterCommand("pdcar_ui", function()
+    if not isNuiOpen then
+        local PlayerData = QBCore.Functions.GetPlayerData()
+        if PlayerData.job.name == "police" then
+            SetNuiOpen(true)
+        else
+            QBCore.Functions.Notify("⛔ הפקודה זמינה רק לשוטרים.", "error")
+        end
+    end
 end, false)
 
-RegisterNUICallback("close", function()
-    SetNuiFocus(false, false)
+RegisterKeyMapping("pdcar_ui", "פתח תפריט ניהול רכבים", "keyboard", "F10")
+
+RegisterNUICallback("closeUI", function(_, cb)
+    SetNuiOpen(false)
+    if cb then cb("ok") end
 end)
 
-RegisterNUICallback("deleteVehicle", function(data)
+RegisterNUICallback("deleteVehicle", function(data, cb)
     TriggerServerEvent("pdcar:server:DeleteVehicle", data.division, data.index)
+    if cb then cb("ok") end
+end)
+
+CreateThread(function()
+    while true do
+        Wait(0)
+        if isNuiOpen and IsControlJustPressed(0, 27) then -- Escape key
+            SetNuiOpen(false)
+        end
+    end
 end)
 
 -- פד קנס
