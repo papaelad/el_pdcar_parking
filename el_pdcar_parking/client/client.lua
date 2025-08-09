@@ -74,6 +74,7 @@ RegisterNetEvent("pdcar:client:LoadVehicles", function(vehicles)
                             SetVehicleUndriveable(vehicle, false)
                             SetVehicleDoorsLocked(vehicle, 1)
                             SetVehicleEngineOn(vehicle, true, true, true)
+                            TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
 
                             local plate = GetVehicleNumberPlateText(vehicle)
                             TriggerEvent('vehiclekeys:client:SetOwner', plate)
