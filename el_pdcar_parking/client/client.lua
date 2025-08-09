@@ -8,13 +8,13 @@ local finePed = nil
 
 -- יצירת אזור חנייה עם PolyZone
 CreateThread(function()
-    while exports['PolyZone'] == nil do
+    while exports['polyzone'] == nil do
         Wait(500)
     end
 
-    local BoxZone = exports['PolyZone'].BoxZone
+    local BoxZone = exports['polyzone'].BoxZone
     if not BoxZone then
-        print("BoxZone is not available from PolyZone exports.")
+        print("BoxZone is not available from polyzone exports.")
         return
     end
 

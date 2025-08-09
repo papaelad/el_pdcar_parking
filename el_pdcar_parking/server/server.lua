@@ -59,14 +59,14 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
-AddEventHandler('QBCore:Server:OnPlayerLoaded', function()
+AddEventHandler('QBCore:PlayerLoaded', function()
     local Player = QBCore.Functions.GetPlayer(source)
     if Player and Player.PlayerData.job.name == "police" then
         TriggerClientEvent("pdcar:client:LoadVehicles", source, vehiclesCache)
     end
 end)
 
-AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
+AddEventHandler('QBCore:Player:SetJob', function(source, job)
     if job.name == "police" then
         TriggerClientEvent("pdcar:client:LoadVehicles", source, vehiclesCache)
     end
